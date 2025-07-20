@@ -17,8 +17,10 @@ puppeteer.use(AdblockerPlugin({
   interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
 }));
 
+let browser: puppeteer.Browser;
+
 (async () => {
-  const browser = await puppeteer.launch({
+  browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
     userDataDir: './user_data',
@@ -26,25 +28,27 @@ puppeteer.use(AdblockerPlugin({
 
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  
+
   await new Promise(resolve => setTimeout(resolve, 30000));
 
   if (await page.$('#accept-btn')) {
     await page.click('#accept-btn');
   }
-  
-  let chaptersData: {name: string, number: number}[] = await Promise.all(Array.from(await page.$$('select#selectChapitres option')).map(async (option) => {
-    const value = await option.evaluate(el => el.textContent);
-    let chapterNumber = value ? value.trim().split(' ')[1] : '';
-    
-    if (value && chapterNumber) {
-      chapterNumber = chapterNumber.replace(/[^0-9.]/g, '');
-      return { name: value.trim(), number: parseFloat(chapterNumber) };
-    }
-    return undefined;
-  })).then(data => data.filter(item => item !== undefined)) || [];
 
-  if(!chaptersData.length) {
+  let chaptersData: { name: string, number: number }[] = await Promise.all(
+    Array.from(await page.$$('select#selectChapitres option')).map(async (option) => {
+      const value = await option.evaluate(el => el.textContent);
+      let chapterNumber = value ? value.trim().split(' ')[1] : '';
+
+      if (value && chapterNumber) {
+        chapterNumber = chapterNumber.replace(/[^0-9.]/g, '');
+        return { name: value.trim(), number: parseFloat(chapterNumber) };
+      }
+      return undefined;
+    })
+  ).then(data => data.filter(item => item !== undefined)) || [];
+
+  if (!chaptersData.length) {
     console.error('Aucun chapitre trouvé.');
     await browser.close();
     return;
@@ -63,7 +67,6 @@ puppeteer.use(AdblockerPlugin({
   for (const chapter of chaptersData) {
     console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
     await page.select('select#selectChapitres', chapter.name);
-
     await new Promise(resolve => setTimeout(resolve, 30000));
 
     const pages = await page.evaluate(() => {
@@ -95,3 +98,14 @@ puppeteer.use(AdblockerPlugin({
 
   await browser.close();
 })();
+
+process.on('SIGINT', async () => {
+  console.log('Interruption détectée, fermeture du navigateur...');
+  await browser?.close();
+  process.exit();
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Rejet non géré :', reason);
+  process.exit(1);
+});
