@@ -97,7 +97,7 @@ let browser: Browser;
         },
         body: JSON.stringify({
           title: finalData.title,
-          chapters: [pages],
+          chapters: pages,
         })
       });
 
@@ -106,21 +106,19 @@ let browser: Browser;
       } else {
         console.error(`Erreur webhook pour le chapitre ${chapter.number} : ${response.status}`);
       }
-    } catch (e) {
-      
-    }
+    } catch (e) {}
   }
 
-  // const slugify = (str: string) => str.toLowerCase()
-  //   .replace(/[^a-z0-9]+/g, '-')
-  //   .replace(/^_+|_+$/g, '');
+  const slugify = (str: string) => str.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^_+|_+$/g, '');
 
-  // const outputPath = `./output/${slugify(finalData.title)}.json`;
+  const outputPath = `./output/${slugify(finalData.title)}.json`;
 
-  // fs.mkdirSync('./output', { recursive: true });
-  // fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
+  fs.mkdirSync('./output', { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
 
-  // console.log(`Fichier sauvegardé dans : ${outputPath}`);
+  console.log(`Fichier sauvegardé dans : ${outputPath}`);
 
   await browser.close();
 })();
