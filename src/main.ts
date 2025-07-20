@@ -25,6 +25,7 @@ let browser: Browser;
     headless: true,
     defaultViewport: null,
     userDataDir: './user_data',
+    args: ['--no-sandbox'],
   });
 
   const page = await browser.newPage();
