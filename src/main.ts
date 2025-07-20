@@ -63,7 +63,7 @@ let browser: Browser;
     chapters: { image: string | null; number: number }[][];
   } = {
     title: await page.evaluate(() => document.querySelector('#titreOeuvre')?.textContent?.trim() || ''),
-    chapters: []
+    // chapters: []
   };
 
   for (const chapter of chaptersData) {
@@ -85,18 +85,42 @@ let browser: Browser;
     }
 
     finalData.chapters.push(pages);
+
+    const webhookUrl = 'https://mangamaniak.xyz/api/external/webhook/french-manga-scraper/add-chapter';
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: finalData.title,
+          chapter: chapter.number,
+          pages: pages.map(page => page.image)
+        })
+      });
+
+      if (response.ok) {
+        console.log(`Webhook envoyé avec succès pour le chapitre ${chapter.number} !`);
+      } else {
+        console.error(`Erreur webhook pour le chapitre ${chapter.number} : ${response.status}`);
+      }
+    } catch (e) {
+      
+    }
   }
 
-  const slugify = (str: string) => str.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^_+|_+$/g, '');
+  // const slugify = (str: string) => str.toLowerCase()
+  //   .replace(/[^a-z0-9]+/g, '-')
+  //   .replace(/^_+|_+$/g, '');
 
-  const outputPath = `./output/${slugify(finalData.title)}.json`;
+  // const outputPath = `./output/${slugify(finalData.title)}.json`;
 
-  fs.mkdirSync('./output', { recursive: true });
-  fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
+  // fs.mkdirSync('./output', { recursive: true });
+  // fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
 
-  console.log(`Fichier sauvegardé dans : ${outputPath}`);
+  // console.log(`Fichier sauvegardé dans : ${outputPath}`);
 
   await browser.close();
 })();
