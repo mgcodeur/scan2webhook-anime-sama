@@ -67,14 +67,13 @@ let browser: Browser;
   };
 
   for (const chapter of chaptersData) {
-    console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
+    // console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
     await page.select('select#selectChapitres', chapter.name);
     await new Promise(resolve => setTimeout(resolve, 30000));
 
     const pages = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('#scansPlacement img.lazy')).map((page, index) => {
         return {
-          title: null,
           image: page.getAttribute('src'),
           number: index + 1
         };
@@ -97,7 +96,13 @@ let browser: Browser;
         },
         body: JSON.stringify({
           title: finalData.title,
-          chapters: pages,
+          chapter: [
+            {
+              title: null,
+              number: chapter.number,
+              pages: pages
+            }
+          ]
         })
       });
 
