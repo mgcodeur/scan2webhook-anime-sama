@@ -60,7 +60,7 @@ let browser: Browser;
 
   const finalData: {
     title: string;
-    chapters: { image: string | null; number: number }[][];
+    // chapters: { image: string | null; number: number }[][];
   } = {
     title: await page.evaluate(() => document.querySelector('#titreOeuvre')?.textContent?.trim() || ''),
     // chapters: []
@@ -84,7 +84,7 @@ let browser: Browser;
       continue;
     }
 
-    finalData.chapters.push(pages);
+    // finalData.chapters.push(pages);
 
     const webhookUrl = 'https://mangamaniak.xyz/api/external/webhook/french-manga-scraper/add-chapter';
 
