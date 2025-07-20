@@ -74,6 +74,7 @@ let browser: Browser;
     const pages = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('#scansPlacement img.lazy')).map((page, index) => {
         return {
+          title: null,
           image: page.getAttribute('src'),
           number: index + 1
         };
@@ -96,8 +97,7 @@ let browser: Browser;
         },
         body: JSON.stringify({
           title: finalData.title,
-          chapter: chapter.number,
-          pages: pages.map(page => page.image)
+          chapters: [pages],
         })
       });
 
