@@ -92,4 +92,6 @@ puppeteer.use(AdblockerPlugin({
   fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
 
   console.log(`Fichier sauvegardé dans : ${outputPath}`);
+
+  await browser.close();
 })();
