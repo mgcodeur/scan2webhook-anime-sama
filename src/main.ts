@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import fs from 'fs';
+import type { Browser, ElementHandle } from 'puppeteer';
 
 // Lecture de l'URL depuis les arguments de la ligne de commande
 const url = process.argv[2];
@@ -17,7 +18,7 @@ puppeteer.use(AdblockerPlugin({
   interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
 }));
 
-let browser: puppeteer.Browser;
+let browser: Browser;
 
 (async () => {
   browser = await puppeteer.launch({
@@ -37,7 +38,7 @@ let browser: puppeteer.Browser;
 
   let chaptersData: { name: string, number: number }[] = await Promise.all(
     Array.from(await page.$$('select#selectChapitres option')).map(async (option) => {
-      const value = await option.evaluate(el => el.textContent);
+      const value = await (option as ElementHandle<HTMLElement>).evaluate((el: HTMLElement) => el.textContent);
       let chapterNumber = value ? value.trim().split(' ')[1] : '';
 
       if (value && chapterNumber) {
@@ -46,7 +47,7 @@ let browser: puppeteer.Browser;
       }
       return undefined;
     })
-  ).then(data => data.filter(item => item !== undefined)) || [];
+  ).then(data => data.filter((item): item is { name: string; number: number } => item !== undefined)) || [];
 
   if (!chaptersData.length) {
     console.error('Aucun chapitre trouvé.');
