@@ -96,7 +96,7 @@ let browser: Browser;
         },
         body: JSON.stringify({
           title: finalData.title,
-          chapter: [
+          chapters: [
             {
               title: null,
               number: chapter.number,
