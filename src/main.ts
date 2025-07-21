@@ -64,7 +64,7 @@ puppeteer.use(AdblockerPlugin({
     console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
     await page.select('select#selectChapitres', chapter.name);
 
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 60000));
 
     const pages = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('#scansPlacement img.lazy')).map((page, index) => {
