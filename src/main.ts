@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import fs from 'fs';
+import type { Browser, ElementHandle } from 'puppeteer';
 
 // Lecture de l'URL depuis les arguments de la ligne de commande
 const url = process.argv[2];
@@ -17,34 +18,39 @@ puppeteer.use(AdblockerPlugin({
   interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
 }));
 
+let browser: Browser;
+
 (async () => {
-  const browser = await puppeteer.launch({
+  browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
     userDataDir: './user_data',
+    args: ['--no-sandbox'],
   });
 
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  
+
   await new Promise(resolve => setTimeout(resolve, 30000));
 
   if (await page.$('#accept-btn')) {
     await page.click('#accept-btn');
   }
-  
-  let chaptersData: {name: string, number: number}[] = await Promise.all(Array.from(await page.$$('select#selectChapitres option')).map(async (option) => {
-    const value = await option.evaluate(el => el.textContent);
-    let chapterNumber = value ? value.trim().split(' ')[1] : '';
-    
-    if (value && chapterNumber) {
-      chapterNumber = chapterNumber.replace(/[^0-9.]/g, '');
-      return { name: value.trim(), number: parseFloat(chapterNumber) };
-    }
-    return undefined;
-  })).then(data => data.filter(item => item !== undefined)) || [];
 
-  if(!chaptersData.length) {
+  let chaptersData: { name: string, number: number }[] = await Promise.all(
+    Array.from(await page.$$('select#selectChapitres option')).map(async (option) => {
+      const value = await (option as ElementHandle<HTMLElement>).evaluate((el: HTMLElement) => el.textContent);
+      let chapterNumber = value ? value.trim().split(' ')[1] : '';
+
+      if (value && chapterNumber) {
+        chapterNumber = chapterNumber.replace(/[^0-9.]/g, '');
+        return { name: value.trim(), number: parseFloat(chapterNumber) };
+      }
+      return undefined;
+    })
+  ).then(data => data.filter((item): item is { name: string; number: number } => item !== undefined)) || [];
+
+  if (!chaptersData.length) {
     console.error('Aucun chapitre trouvé.');
     await browser.close();
     return;
@@ -54,14 +60,14 @@ puppeteer.use(AdblockerPlugin({
 
   const finalData: {
     title: string;
-    chapters: { image: string | null; number: number }[][];
+    // chapters: { image: string | null; number: number }[][];
   } = {
     title: await page.evaluate(() => document.querySelector('#titreOeuvre')?.textContent?.trim() || ''),
-    chapters: []
+    // chapters: []
   };
 
   for (const chapter of chaptersData) {
-    console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
+    // console.log(`Traitement du chapitre : ${chapter.name} (${chapter.number})`);
     await page.select('select#selectChapitres', chapter.name);
 
     await new Promise(resolve => setTimeout(resolve, 60000));
@@ -79,7 +85,34 @@ puppeteer.use(AdblockerPlugin({
       continue;
     }
 
-    finalData.chapters.push(pages);
+    // finalData.chapters.push(pages);
+
+    const webhookUrl = 'https://mangamaniak.xyz/api/external/webhook/french-manga-scraper/add-chapter';
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: finalData.title,
+          chapters: [
+            {
+              title: null,
+              number: chapter.number,
+              pages: pages
+            }
+          ]
+        })
+      });
+
+      if (response.ok) {
+        console.log(`Webhook envoyé avec succès pour le chapitre ${chapter.number} !`);
+      } else {
+        console.error(`Erreur webhook pour le chapitre ${chapter.number} : ${response.status}`);
+      }
+    } catch (e) {}
   }
 
   const slugify = (str: string) => str.toLowerCase()
@@ -92,4 +125,17 @@ puppeteer.use(AdblockerPlugin({
   fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 2));
 
   console.log(`Fichier sauvegardé dans : ${outputPath}`);
+
+  await browser.close();
 })();
+
+process.on('SIGINT', async () => {
+  console.log('Interruption détectée, fermeture du navigateur...');
+  await browser?.close();
+  process.exit();
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Rejet non géré :', reason);
+  process.exit(1);
+});
