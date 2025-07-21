@@ -4,6 +4,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import fs from 'fs';
 import type { Browser, ElementHandle } from 'puppeteer';
+import { env } from './core/utils/env';
 
 // Lecture de l'URL depuis les arguments de la ligne de commande
 const url = process.argv[2];
@@ -21,8 +22,10 @@ puppeteer.use(AdblockerPlugin({
 let browser: Browser;
 
 (async () => {
+  console.log(env('HEADLESS', 'true') === 'true' ? 'Mode headless activé.' : 'Mode headless désactivé.');
+  console.log(env('WEBHOOK_URL', 'Aucun webhook défini.') ? `Webhook URL : ${env('WEBHOOK_URL')}` : 'Aucun webhook URL défini.');
   browser = await puppeteer.launch({
-    headless: true,
+    headless: env('HEADLESS') === 'true',
     defaultViewport: null,
     userDataDir: './user_data',
     args: ['--no-sandbox'],
@@ -31,7 +34,7 @@ let browser: Browser;
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-  await new Promise(resolve => setTimeout(resolve, 30000));
+  await new Promise(resolve => setTimeout(resolve, 60000));
 
   if (await page.$('#accept-btn')) {
     await page.click('#accept-btn');
@@ -87,7 +90,7 @@ let browser: Browser;
 
     // finalData.chapters.push(pages);
 
-    const webhookUrl = 'https://mangamaniak.xyz/api/external/webhook/french-manga-scraper/add-chapter';
+    const webhookUrl = env('WEBHOOK_URL');
 
     try {
       const response = await fetch(webhookUrl, {
