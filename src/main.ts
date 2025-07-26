@@ -76,7 +76,7 @@ let browser: Browser;
     await new Promise(resolve => setTimeout(resolve, 60000));
 
     const pages = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('#scansPlacement img.lazy')).map((page, index) => {
+      return Array.from(document.querySelectorAll('#scansPlacement img[loading="lazy"]')).map((page, index) => {
         return {
           image: page.getAttribute('src'),
           number: index + 1
